@@ -11,212 +11,171 @@
 #include <iostream>
 #include <thread>
 
-// Need to link with Ws2_32.lib
 #pragma comment (lib, "Ws2_32.lib")
-// #pragma comment (lib, "Mswsock.lib")
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "8080"
 
+
 std::string replace(char *bufArr) {
-	std::string buf(bufArr);
-	buf.replace(buf.find("hello"), sizeof("asdfg") - 1, "asdfg");
-	return buf;
+   std::string buf(bufArr);
+   buf.replace(buf.find("hacking"), sizeof("asdfgf") - 1, "asdfgf");
+   return buf;
 }
-void sendToClient(SOCKET ConnectSocket, std::string buf) {
-	send(ConnectSocket, buf.c_str(), buf.length(), 0);
+void sendToClient(SOCKET csock, std::string buf) {
+   send(csock, buf.c_str(), buf.length(), 0);
 
 
-	std::cout << buf << std::endl;
-}
-
-void proxy(SOCKET ClientSocket, char *bufArr, int length) {
-	std::string buf(bufArr);
-	buf = buf.substr(0, length);
-	int i = buf.find("Host: ") + strlen("Host: ");
-	std::string address;
-	while (buf.c_str()[i] != '\r') {
-		address += buf.c_str()[i];
-		i++;
-	}
-	char *port = "80";
-	if (address.find(":") != std::string::npos) {
-		address = address.substr(0, address.find(":"));
-		port = "443";
-	}
-
-	std::cout << address << std::endl;
-
-
-
-	struct addrinfo *result = NULL,*ptr = NULL,hints;
-	SOCKET ConnectSocket = INVALID_SOCKET;
-
-	ZeroMemory(&hints, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-
-	// Resolve server address and port
-	int iResult = getaddrinfo(address.c_str(), port, &hints, &result);
-	if (iResult != 0) {
-		printf("getaddrinfo failed with error: %d\n", iResult);
-		WSACleanup();
-		exit(1);
-	}
-
-	// connect to address
-	for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
-
-		// Create socket for connecting to server
-		ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-		if (ConnectSocket == INVALID_SOCKET) {
-			printf("socket failed with error: %ld\n", WSAGetLastError());
-			WSACleanup();
-			exit(1);
-		}
-
-		// Connect to Server
-		iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
-		if (iResult == SOCKET_ERROR) {
-			closesocket(ConnectSocket);
-			ConnectSocket = INVALID_SOCKET;
-			continue;
-		}
-		iResult = send(ConnectSocket, buf.c_str(), buf.length(), 0);
-		if (iResult == SOCKET_ERROR) {
-			closesocket(ConnectSocket);
-			ConnectSocket = INVALID_SOCKET;
-			continue;
-		}
-		int recvbuflen = DEFAULT_BUFLEN;
-		char recvbuf[DEFAULT_BUFLEN] = "";
-		do {
-			iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-			if (iResult >0) {
-				sendToClient(ClientSocket, replace(recvbuf));
-			}
-			else if (iResult == 0) {
-				wprintf(L"Bytes received: %d\n", iResult);
-			}
-			else {
-				wprintf(L"Bytes received: %d\n", iResult);
-			}
-		} while (iResult >0);
-
-		break;
-	}
-	freeaddrinfo(result);
+   std::cout << buf << std::endl;
 }
 
-int __cdecl main(void)
-{
-	WSADATA wsaData;
-	int iResult;
+void proxy(SOCKET csock, char *bufArr, int length) {
+   char *port ="80";
+   std::string buf(bufArr);
+   buf = buf.substr(0,length);
+   int i= buf.find("Host: ")+strlen("Host: ");
+   std::string address;
+   while(buf.c_str()[i] !='\r'){     //
+      address += buf.c_str()[i];
+      i++;
+   }
+   
+   
+   std::cout<<address<<std::endl;
 
-	SOCKET ServerSocket = INVALID_SOCKET;      //클라이언트로부터 받아드릴 소켓
-	SOCKET ClientSocket = INVALID_SOCKET;      //클라이언트로 접속 한 소켓
+   struct addrinfo *result =NULL;
+   struct addrinfo *ptr = NULL,hints;
+   SOCKET ConnectSocket = INVALID_SOCKET;
 
-	struct addrinfo *result = NULL;
-	struct addrinfo hints;
+   ZeroMemory(&hints,sizeof(hints));
+   hints.ai_family = AF_UNSPEC;
+   hints.ai_socktype = SOCK_STREAM;
+   hints.ai_protocol = IPPROTO_TCP;
 
-	char recvbuf[DEFAULT_BUFLEN];
-	int recvbuflen = DEFAULT_BUFLEN;
+   int check = getaddrinfo(address.c_str(), port, &hints, &result);
+   if (check != 0) {
+      printf("getaddrinfo error2\n");
+      WSACleanup();
+      exit(1);
+   }
 
-	// Initialize Winsock
-	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-	if (iResult != 0) {
-		printf("WSAStartup failed with error: %d\n", iResult);
-		return 1;
-	}
+   for(ptr = result; ptr != NULL; ptr = ptr->ai_next){//
+      
+      csock = socket(ptr->ai_family,ptr->ai_socktype,ptr->ai_protocol);
+      if(csock == INVALID_SOCKET){
+         printf("socket error2\n");
+         WSACleanup();
+         exit(1);
+      }
 
-	ZeroMemory(&hints, sizeof(hints));      //hints 라는 구조체를 0으로 다 채움
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-	hints.ai_flags = AI_PASSIVE;
+      check = connect(csock,ptr->ai_addr, (int)ptr->ai_addrlen);
+      if (check == SOCKET_ERROR) {
+         printf("getaddrinfo error2\n");
+         closesocket(csock);
+         csock=INVALID_SOCKET;
+         continue;
+      }
+      int recvbuflen = DEFAULT_BUFLEN;
+      char recvbuf[DEFAULT_BUFLEN] = "";
+      do {
+         check = recv(csock, recvbuf, recvbuflen, 0);
+         if (check >0) {
+            sendToClient(csock, replace(recvbuf));
+         }
+         else if (check == 0) {
+            wprintf(L"Bytes received: %d\n", check);
+         }
+         else {
+            wprintf(L"Bytes received: %d\n", check);
+         }
+      } while (check >0);
 
-	// Resolve the server address and port
-	iResult = getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
-	if (iResult != 0) {
-		printf("getaddrinfo failed with error: %d\n", iResult);
-		WSACleanup();
-		return 1;
-	}
+      break;
+   }
+   freeaddrinfo(result);
+}
+   }
 
-	// Create a SOCKET for connecting to server
-	ServerSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-	if (ServerSocket == INVALID_SOCKET) {
-		printf("socket failed with error: %ld\n", WSAGetLastError());
-		freeaddrinfo(result);
-		WSACleanup();
-		return 1;
-	}
+}
+int _cdecl main() {
+   WSADATA wsaData;
+   int check;
 
-	// Setup the TCP listening socket
-	iResult = bind(ServerSocket, result->ai_addr, (int)result->ai_addrlen);
-	if (iResult == SOCKET_ERROR) {
-		printf("bind failed with error: %d\n", WSAGetLastError());
-		freeaddrinfo(result);
-		closesocket(ServerSocket);
-		WSACleanup();
-		return 1;
-	}
+   SOCKET ssock = INVALID_SOCKET;
+   SOCKET csock = INVALID_SOCKET;
 
-	freeaddrinfo(result);
+   struct addrinfo *result = NULL;
+   struct addrinfo hints;
 
-	iResult = listen(ServerSocket, SOMAXCONN);
-	if (iResult == SOCKET_ERROR) {
-		printf("listen failed with error: %d\n", WSAGetLastError());
-		closesocket(ServerSocket);
-		WSACleanup();
-		return 1;
-	}
+   char recvbuf[DEFAULT_BUFLEN];
+   int recvbuflen = DEFAULT_BUFLEN;
 
-	while (true) {
+   check = WSAStartup(MAKEWORD(2, 2), &wsaData);
+   if (check != 0) {
+      printf("WSAStartup error\n");
+      return 1;
+   }
 
-		// Accept a client socket
-		ClientSocket = accept(ServerSocket, NULL, NULL);
-		if (ClientSocket == INVALID_SOCKET) {
-			printf("accept failed with error: %d\n", WSAGetLastError());
-			closesocket(ServerSocket);
-			WSACleanup();
-			return 1;
-		}
-		// Receive until the peer shuts down the connection
-		do {
+   check = getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
+   if (check != 0) {
+      printf("getaddrinfo error\n");
+      return 1;
+   }
 
-			iResult = recv(ClientSocket, recvbuf, recvbuflen, 0);
+   ssock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+   if (ssock == INVALID_SOCKET) {
+      printf("SSocket error\n");
+      closesocket(ssock);
+      WSACleanup();
+      return 1;
 
-			if (iResult > 0) {
-				std::thread(proxy, ClientSocket, recvbuf, iResult).detach();
-			}
-			else if (iResult == 0)
-				printf("Connection closing...\n");
-			else {
-				printf("recv failed with error: %d\n", WSAGetLastError());
-				closesocket(ClientSocket);
-				WSACleanup();
-				return 1;
-			}
+   }
 
-		} while (iResult > 0);
-	}
-	// No longer need server socket
-	closesocket(ServerSocket);
+   check = bind(ssock, result->ai_addr, (int)result->ai_addrlen);
+   if (check == SOCKET_ERROR) {
+      printf("Bind error\n");
+      closesocket(ssock);
+      WSACleanup();
+      return 1;
 
-	// shutdown the connection since we're done
-	iResult = shutdown(ClientSocket, SD_SEND);
-	if (iResult == SOCKET_ERROR) {
-		printf("shutdown failed with error: %d\n", WSAGetLastError());
-		closesocket(ClientSocket);
-		WSACleanup();
-		return 1;
-	}
+   }
+   while (1) {
+      csock = accept(csock, NULL, NULL);
+      if (csock == INVALID_SOCKET) {
+         printf("accept error\n");
+         closesocket(ssock);
+         WSACleanup();
+         return 1;
 
-	// cleanup
-	closesocket(ClientSocket);
-	WSACleanup();
+      }
+      do {
+         check = recv(csock, recvbuf, recvbuflen, NULL);
+         if (check > 0) {
+            std::thread(proxy, csock, recvbuf, check).detach();
+         }
+         else if (check == 0)
+            printf("Connection closing...\n");
+         else {
+            printf("recv error: %d\n", WSAGetLastError());
+            closesocket(csock);
+            WSACleanup();
+            return 1;
+         }
 
-	return 0;
+      } while (check > 0);
+   }
+   closesocket(ssock);
+
+   check = shutdown(csock, SD_SEND);
+   if (check == SOCKET_ERROR) {
+      printf("shutdown error\n");
+      closesocket(ssock);
+      WSACleanup();
+      return 1;
+
+   }
+   closesocket(csock);
+   WSACleanup();
+
+
 }
