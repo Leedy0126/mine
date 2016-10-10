@@ -94,9 +94,7 @@ void proxy(SOCKET csock, char *bufArr, int length) {
    }
    freeaddrinfo(result);
 }
-   }
-
-}
+  
 int _cdecl main() {
    WSADATA wsaData;
    int check;
